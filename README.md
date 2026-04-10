@@ -2,35 +2,39 @@
 
 OOP course project — IT620
 
-Kiosk management system for a smart city setup. Built as part of a group assignment. Uses design patterns like singleton, abstract factory and adapter. Work in progress.
+Kiosk management system for a smart city setup. Built as part of a group assignment. Uses design patterns like singleton, abstract factory, adapter, composite and facade.
 
 ## how to run
 
-make sure node.js is installed, no other dependencies needed
+Make sure Python 3.7+ is installed. No external dependencies needed.
 
 ```
-node simulation.js
+python simulation.py
 ```
 
-## patterns implemented so far
+## patterns implemented
 
 - Singleton — CentralRegistry
 - Abstract Factory — KioskFactory
 - Adapter — PaymentGateway
+- Composite — IProduct / SingleProduct / ProductBundle
+- Facade — KioskInterface
 
 ## folder structure
 
 ```
 src/
-  CentralRegistry.js
-  KioskFactory.js
-  PaymentGateway.js
-  IProduct.js
-  KioskInterface.js
+  central_registry.py
+  kiosk_factory.py
+  payment_gateway.py
+  i_product.py
+  kiosk_interface.py
+  __init__.py
 diagrams/
   architecture.xml
   class-diagram.xml
-simulation.js
+simulation.py
+README.md
 ```
 
 ## group
