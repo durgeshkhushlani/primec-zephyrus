@@ -1,6 +1,5 @@
 # primec-zephyrus
 
-OOP course project — IT620
 
 Kiosk management system for a smart city setup. Built as part of a group assignment. Uses design patterns like singleton, abstract factory, adapter, composite and facade.
 
