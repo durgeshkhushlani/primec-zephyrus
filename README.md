@@ -5,7 +5,7 @@ Kiosk management system for a smart city setup. Built as part of a group assignm
 
 ## how to run
 
-Make sure Python 3.7+ is installed. No external dependencies needed.
+On your machine Python 3.7+ is installed. No external dependencies needed.
 
 ```
 python simulation.py
