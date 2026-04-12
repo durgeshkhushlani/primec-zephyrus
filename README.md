@@ -11,13 +11,15 @@ On your machine Python 3.7+ is installed. No external dependencies needed.
 python simulation.py
 ```
 
-## patterns implemented
+## What's implemented
 
-- Singleton — CentralRegistry
-- Abstract Factory — KioskFactory
-- Adapter — PaymentGateway
-- Composite — IProduct / SingleProduct / ProductBundle
-- Facade — KioskInterface
+| Pattern | File |
+|---|---|
+| Singleton | src/central_registry.py |
+| Abstract Factory | src/kiosk_factory.py |
+| Adapter | src/payment_gateway.py |
+
+Composite and Facade are partially scaffolded in i_product.py and kiosk_interface.py — will be completed in final submission.
 
 ## folder structure
 
