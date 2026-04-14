@@ -1,79 +1,141 @@
-# composite pattern for inventory
-# single item and bundle both behave same from outside
-
 from abc import ABC, abstractmethod
+from typing import List
 
+"""
+Product Interface and Hierarchy for Aura Retail OS.
+Implements the Composite design pattern for single products and bundles.
+"""
 
 class IProduct(ABC):
-
-    @abstractmethod
-    def get_price(self): pass
-
-    @abstractmethod
-    def in_stock(self): pass
-
-    @abstractmethod
-    def get_qty(self): pass
-
-    @abstractmethod
-    def show(self, pad=""): pass
-
-
-# leaf node
-class SingleProduct(IProduct):
-
-    def __init__(self, name, price, qty):
+    """Abstract base class for all products."""
+    
+    def __init__(self, product_id: str, name: str, price: float, quantity: int):
+        self.product_id = product_id
         self.name = name
-        self.price = price
-        self.qty = qty
+        self._price = price
+        self._quantity = quantity
+        self.reserved_quantity = 0
 
-    def get_price(self):
+    @property
+    def price(self) -> float:
+        return self._price
+
+    @price.setter
+    def price(self, value: float):
+        self._price = value
+
+    @property
+    def quantity(self) -> int:
+        return self._quantity
+
+    @quantity.setter
+    def quantity(self, value: int):
+        self._quantity = value
+
+    @abstractmethod
+    def get_price(self) -> float:
+        """Returns the total price of the product (recursive for bundles)."""
+        pass
+
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Checks if product is available (quantity - reserved > 0)."""
+        pass
+
+    @abstractmethod
+    def get_details(self) -> str:
+        """Returns descriptive details of the product."""
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """Serializes product to a dictionary for persistence."""
+        pass
+
+
+class SingleProduct(IProduct):
+    """A standalone retail item."""
+    
+    def get_price(self) -> float:
+        """Returns the base price."""
         return self.price
 
-    def in_stock(self):
-        return self.qty > 0
+    def is_available(self) -> bool:
+        """Checks stock against reservations."""
+        return (self.quantity - self.reserved_quantity) > 0
 
-    def get_qty(self):
-        return self.qty
+    def get_details(self) -> str:
+        """Returns product ID, name, price, and stock info."""
+        return f"ID: {self.product_id} | {self.name} | Price: {self.price} | Stock: {self.quantity} (Res: {self.reserved_quantity})"
 
-    def take_one(self):
-        if self.qty > 0:
-            self.qty -= 1
+    def to_dict(self) -> dict:
+        return {
+            "type": "single",
+            "product_id": self.product_id,
+            "name": self.name,
+            "price": self.price,
+            "quantity": self.quantity,
+            "reserved": self.reserved_quantity
+        }
 
-    def show(self, pad=""):
-        print(pad + "- " + self.name + " | rs." + str(self.price) + " | qty: " + str(self.qty))
 
+class BundleProduct(IProduct):
+    """A collection of products, potentially including other bundles."""
+    
+    def __init__(self, product_id: str, name: str):
+        super().__init__(product_id, name, 0, 0)
+        self.children: List[IProduct] = []
 
-# composite node - can hold single items or other bundles
-class ProductBundle(IProduct):
+    def add_product(self, product: IProduct):
+        """Adds a child product to the bundle."""
+        self.children.append(product)
 
-    def __init__(self, name):
-        self.name = name
-        self.stuff = []   # children
+    def get_price(self) -> float:
+        """Returns the recursive sum of all child prices."""
+        return sum(child.get_price() for child in self.children)
 
-    def add(self, p):
-        self.stuff.append(p)
+    def is_available(self) -> bool:
+        """A bundle is available only if all its components are available."""
+        if not self.children:
+            return False
+        return all(child.is_available() for child in self.children)
 
-    def get_price(self):
-        total = 0
-        for p in self.stuff:
-            total += p.get_price()
-        return total
+    def get_details(self) -> str:
+        """Returns bundle info and nested children details."""
+        details = f"[BUNDLE] ID: {self.product_id} | {self.name} | Total Price: {self.get_price()}\n"
+        for child in self.children:
+            item_details = child.get_details().replace("\n", "\n  ")
+            details += f"  - {item_details}\n"
+        return details.strip()
 
-    def in_stock(self):
-        for p in self.stuff:
-            if not p.in_stock():
-                return False
-        return True
+    def to_dict(self) -> dict:
+        return {
+            "type": "bundle",
+            "product_id": self.product_id,
+            "name": self.name,
+            "children": [child.to_dict() for child in self.children]
+        }
 
-    def get_qty(self):
-        min_qty = 9999
-        for p in self.stuff:
-            if p.get_qty() < min_qty:
-                min_qty = p.get_qty()
-        return min_qty
+    @property
+    def quantity(self) -> int:
+        """A bundle's quantity is the minimum quantity of its components."""
+        if not self.children:
+            return 0
+        return min(child.quantity for child in self.children)
 
-    def show(self, pad=""):
-        print(pad + "[bundle] " + self.name + " | total: rs." + str(self.get_price()))
-        for p in self.stuff:
-            p.show(pad + "   ")
+    @quantity.setter
+    def quantity(self, value: int):
+        """Setting bundle quantity is not directly supported; set children instead."""
+        pass
+
+    @property
+    def reserved_quantity(self) -> int:
+        """A bundle's reserved quantity is the max reserved of its components (relative to bundle unit)."""
+        if not self.children:
+            return 0
+        return max(child.reserved_quantity for child in self.children)
+
+    @reserved_quantity.setter
+    def reserved_quantity(self, value: int):
+        """Manually setting reservation on bundle is handled by children."""
+        pass
