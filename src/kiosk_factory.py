@@ -1,154 +1,109 @@
-# abstract factory - each kiosk type gets its own factory
-
 from abc import ABC, abstractmethod
+from src.hardware import (
+    Dispenser, SpiralDispenser, RoboticArmDispenser, ConveyorDispenser
+)
+
+"""
+Abstract Factory Module for Aura Retail OS.
+Ensures that compatible hardware and software components are created for each kiosk type.
+"""
+
+# --- Component Interfaces ---
+
+class Verifier(ABC):
+    """Interface for user or age verification."""
+    @abstractmethod
+    def verify(self, user_id: str) -> bool: pass
+
+class PricingModule(ABC):
+    """Interface for dynamic or static pricing strategies."""
+    @abstractmethod
+    def calculate(self, base_price: float) -> float: pass
+
+class InventoryPolicy(ABC):
+    """Interface for stock management rules (e.g., prescription checks)."""
+    @abstractmethod
+    def check_eligibility(self, product_id: str) -> bool: pass
 
 
-# --- product interfaces (dispenser, payment module, inventory policy) ---
+# --- Concrete Components ---
 
-class Dispenser:
-    def __init__(self, dtype):
-        self.dtype = dtype
+class IDVerifier(Verifier):
+    def verify(self, user_id: str) -> bool:
+        print(f"[VERIFIER] Checking ID for user {user_id}...")
+        return True
 
-    def give(self, item):
-        raise NotImplementedError
+class BiometricVerifier(Verifier):
+    def verify(self, user_id: str) -> bool:
+        print(f"[VERIFIER] Scanning biometrics for {user_id}...")
+        return True
+
+class NoVerifier(Verifier):
+    def verify(self, user_id: str) -> bool:
+        return True
+
+class StandardPricing(PricingModule):
+    def calculate(self, base_price: float) -> float:
+        return base_price
+
+class DiscountPricing(PricingModule):
+    def calculate(self, base_price: float) -> float:
+        return base_price * 0.9  # 10% off
+
+class PremiumPricing(PricingModule):
+    def calculate(self, base_price: float) -> float:
+        return base_price * 1.2  # 20% surcharge
+
+class StrictPolicy(InventoryPolicy):
+    def check_eligibility(self, product_id: str) -> bool:
+        print(f"[POLICY] Strict check enabled for {product_id}")
+        return True
+
+class OpenPolicy(InventoryPolicy):
+    def check_eligibility(self, product_id: str) -> bool:
+        return True
 
 
-class PaymentModule:
-    def __init__(self, ptype):
-        self.ptype = ptype
-
-    def pay(self, amt):
-        raise NotImplementedError
-
-    def refund(self, txn_id):
-        raise NotImplementedError
-
-
-class InvPolicy:
-    def __init__(self, pol):
-        self.pol = pol
-
-    def verify(self, item):
-        raise NotImplementedError
-
-
-# --- abstract factory ---
+# --- Abstract Factory ---
 
 class KioskFactory(ABC):
+    """Abstract Factory for creating family of compatible components."""
+    
+    @abstractmethod
+    def create_dispenser(self) -> Dispenser: pass
 
     @abstractmethod
-    def make_dispenser(self): pass
+    def create_verifier(self) -> Verifier: pass
 
     @abstractmethod
-    def make_payment(self): pass
+    def create_pricing_module(self) -> PricingModule: pass
 
     @abstractmethod
-    def make_inv_policy(self): pass
+    def create_inventory_policy(self) -> InventoryPolicy: pass
 
 
-# --- pharmacy kiosk ---
-
-class PharmacyDispenser(Dispenser):
-    def __init__(self):
-        super().__init__("robotic_arm")
-
-    def give(self, item):
-        print("[pharma dispenser] giving out " + item + " via robotic arm")
-
-
-class PharmacyPayment(PaymentModule):
-    def __init__(self):
-        super().__init__("card")
-
-    def pay(self, amt):
-        print("[pharma] card swiped for rs." + str(amt))
-
-    def refund(self, txn_id):
-        print("[pharma] refund done for txn " + txn_id)
-
-
-class PharmacyPolicy(InvPolicy):
-    def __init__(self):
-        super().__init__("prescription_needed")
-
-    def verify(self, item):
-        print("[pharma] checking prescription for " + item)
-        return True
-
+# --- Concrete Factories ---
 
 class PharmacyKioskFactory(KioskFactory):
-    def make_dispenser(self): return PharmacyDispenser()
-    def make_payment(self):   return PharmacyPayment()
-    def make_inv_policy(self): return PharmacyPolicy()
-
-
-# --- food kiosk ---
-
-class FoodDispenser(Dispenser):
-    def __init__(self):
-        super().__init__("spiral")
-
-    def give(self, item):
-        print("[food dispenser] spiral drop -> " + item)
-
-
-class FoodPayment(PaymentModule):
-    def __init__(self):
-        super().__init__("upi")
-
-    def pay(self, amt):
-        print("[food] upi payment done rs." + str(amt))
-
-    def refund(self, txn_id):
-        print("[food] upi refund for " + txn_id)
-
-
-class FoodPolicy(InvPolicy):
-    def __init__(self):
-        super().__init__("normal")
-
-    def verify(self, item):
-        print("[food] stock ok for " + item)
-        return True
-
+    def create_dispenser(self): return RoboticArmDispenser("RX-Arm-01")
+    def create_verifier(self): return IDVerifier()
+    def create_pricing_module(self): return StandardPricing()
+    def create_inventory_policy(self): return StrictPolicy()
 
 class FoodKioskFactory(KioskFactory):
-    def make_dispenser(self): return FoodDispenser()
-    def make_payment(self):   return FoodPayment()
-    def make_inv_policy(self): return FoodPolicy()
+    def create_dispenser(self): return SpiralDispenser("SnackSpiral-V2")
+    def create_verifier(self): return NoVerifier()
+    def create_pricing_module(self): return DiscountPricing()
+    def create_inventory_policy(self): return OpenPolicy()
 
+class EmergencyReliefKioskFactory(KioskFactory):
+    def create_dispenser(self): return ConveyorDispenser("BulkConveyor-01")
+    def create_verifier(self): return BiometricVerifier()
+    def create_pricing_module(self): return DiscountPricing() # Emergency discount
+    def create_inventory_policy(self): return OpenPolicy()
 
-# --- emergency kiosk ---
-
-class EmergencyDispenser(Dispenser):
-    def __init__(self):
-        super().__init__("conveyor")
-
-    def give(self, item):
-        print("[emergency dispenser] conveyor releasing " + item)
-
-
-class EmergencyPayment(PaymentModule):
-    def __init__(self):
-        super().__init__("free")
-
-    def pay(self, amt):
-        print("[emergency] no payment, item is free")
-
-    def refund(self, txn_id):
-        print("[emergency] nothing to refund")
-
-
-class EmergencyPolicy(InvPolicy):
-    def __init__(self):
-        super().__init__("emergency_override")
-
-    def verify(self, item):
-        print("[emergency] override active, releasing " + item)
-        return True
-
-
-class EmergencyKioskFactory(KioskFactory):
-    def make_dispenser(self): return EmergencyDispenser()
-    def make_payment(self):   return EmergencyPayment()
-    def make_inv_policy(self): return EmergencyPolicy()
+class ElectronicsKioskFactory(KioskFactory):
+    def create_dispenser(self): return RoboticArmDispenser("GripArm-Tech")
+    def create_verifier(self): return IDVerifier()
+    def create_pricing_module(self): return PremiumPricing()
+    def create_inventory_policy(self): return StrictPolicy()
