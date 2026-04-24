@@ -1,0 +1,10 @@
+{
+    "R999": {
+        "type": "single",
+        "product_id": "R999",
+        "name": "Emergency Med Kit",
+        "price": 1200.0,
+        "quantity": 99,
+        "reserved": 0
+    }
+}

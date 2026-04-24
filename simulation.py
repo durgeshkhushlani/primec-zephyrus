@@ -1,91 +1,161 @@
+import os
+import json
 from src.central_registry import CentralRegistry
-from src.kiosk_factory import PharmacyKioskFactory, FoodKioskFactory, EmergencyKioskFactory
-from src.payment_gateway import UpiAdapter, CardAdapter, WalletAdapter
-from src.i_product import SingleProduct, ProductBundle
+from src.kiosk_factory import (
+    PharmacyKioskFactory, FoodKioskFactory, 
+    EmergencyReliefKioskFactory, ElectronicsKioskFactory
+)
 from src.kiosk_interface import KioskInterface
+from src.i_product import SingleProduct, BundleProduct
+from src.hardware import (
+    RoboticArmDispenser, SpiralDispenser, RefrigerationModule
+)
+from src.payment_gateway import PaymentProcessor
 
-print("aura retail os simulation --->")
+"""
+Aura Retail OS - Simulation Runner
+Demonstrates Path B: Modular Hardware Platform and required design patterns.
+"""
 
-# singleton test - both should point to same object
-reg1 = CentralRegistry.get_instance()
-reg2 = CentralRegistry.get_instance()
-print("singleton check (should be true):", reg1 is reg2)
+# =====================================================================
+# SCENARIO 4 - EXTENSIBILITY DEMO (Open/Closed Principle)
+# =====================================================================
+# We define a brand new payment provider without touching src/ files.
 
-# creating kiosks using abstract factory
-print("\ncreating kiosks -->")
-pharma = KioskInterface("PHARMA-01", PharmacyKioskFactory())
-food   = KioskInterface("FOOD-01",   FoodKioskFactory())
-emrg   = KioskInterface("EMRG-01",   EmergencyKioskFactory())
+class CryptoAPI:
+    """New third-party Crypto payment API."""
+    def pay_with_crypto(self, amount: float, wallet_address: str) -> bool:
+        print(f"[EXTERNAL-API] Crypto: Processing {amount} BTC from {wallet_address}")
+        return True
 
-# setting up inventory using composite pattern
-print("\n-- loading inventory --")
+class CryptoAdapter(PaymentProcessor):
+    """Adapter for the new CryptoAPI."""
+    def __init__(self):
+        self.api = CryptoAPI()
 
-medicine = SingleProduct("Paracetamol", 25, 10)
-band     = SingleProduct("Bandage", 15, 5)
-kit      = ProductBundle("First Aid Kit")
-kit.add(medicine)
-kit.add(band)
+    def process(self, amount: float, user_id: str) -> bool:
+        # Map parameters to API expectations
+        return self.api.pay_with_crypto(amount, f"0x{user_id.upper()}BEEF")
 
-pharma.load_item(medicine)
-pharma.load_item(kit)
-pharma.show_items()
 
-chips = SingleProduct("Chips", 20, 3)
-water = SingleProduct("Water Bottle", 15, 0)   # out of stock on purpose
-juice = SingleProduct("Juice", 30, 2)
-combo = ProductBundle("Snack Combo")
-combo.add(chips)
-combo.add(juice)
+def run_simulation():
+    print("="*60)
+    print("       AURA RETAIL OS - SYSTEM SIMULATION (PATH B)       ")
+    print("="*60)
 
-food.load_item(chips)
-food.load_item(water)
-food.load_item(combo)
-food.show_items()
+    # Scenarios initialization
+    registry = CentralRegistry.get_instance()
 
-blanket = SingleProduct("Blanket", 0, 20)
-torch   = SingleProduct("Flashlight", 0, 15)
-ekit    = ProductBundle("Emergency Kit")
-ekit.add(blanket)
-ekit.add(torch)
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Scenario 1: Hardware Replacement at Runtime")
+    # -----------------------------------------------------------------
+    pharma_kiosk = KioskInterface("PHARMA-SEC-01", PharmacyKioskFactory())
+    # Manually downgrade dispenser to show a runtime upgrade later
+    pharma_kiosk.hardware.active_dispenser = SpiralDispenser("Legacy-Spiral-Unit")
+    
+    # Setup inventory
+    insulin = SingleProduct("P001", "Insulin", 500.0, 10)
+    pharma_kiosk.inventory.add_product(insulin)
+    
+    print("[HARDWARE] Current dispenser: ", type(pharma_kiosk.hardware.active_dispenser).__name__)
+    pharma_kiosk.purchase_item("P001", "USER_A", "credit_card")
+    
+    # Replace dispenser at runtime
+    print("[HARDWARE] Upgrading dispenser to RoboticArm...")
+    pharma_kiosk.hardware.replace_dispenser(RoboticArmDispenser("Precision-Arm-X"))
+    pharma_kiosk.purchase_item("P001", "USER_A", "credit_card")
+    
+    # Attach optional module
+    print("[HARDWARE] Adding Refrigeration Module...")
+    pharma_kiosk.hardware.add_module(RefrigerationModule("ColdVault-3000"))
+    pharma_kiosk.run_diagnostics()
 
-emrg.load_item(blanket)
-emrg.load_item(ekit)
-emrg.show_items()
 
-# buying stuff through the facade
-print("\npurchase simulation -->")
-pharma.buy("Paracetamol", 25)
-food.buy("Chips", 20)
-food.buy("Water Bottle", 15)   # should fail
-emrg.buy("Blanket", 0)
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Scenario 2: Multiple Payment Providers")
+    # -----------------------------------------------------------------
+    food_kiosk = KioskInterface("METRO-FOOD-05", FoodKioskFactory())
+    coffee = SingleProduct("F101", "Coffee", 40.0, 50)
+    food_kiosk.inventory.add_product(coffee)
 
-# adapter pattern - swapping payment providers
-print("\npayment adapter test -->")
-upi    = UpiAdapter()
-card   = CardAdapter()
-wallet = WalletAdapter()
+    print("[PAYMENT] Processing Credit Card payment...")
+    food_kiosk.purchase_item("F101", "Durgesh", "credit_card")
+    
+    print("[PAYMENT] Processing UPI payment...")
+    food_kiosk.purchase_item("F101", "Priyanshu", "upi")
+    
+    print("[PAYMENT] Processing Wallet payment...")
+    food_kiosk.purchase_item("F101", "Jay", "wallet")
 
-# all three use same method names even though internal apis differ
-upi.do_payment(150)
-card.do_payment(150)
-wallet.do_payment(150)
 
-upi.do_refund("TXN101")
-card.do_refund("TXN102")
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Scenario 3: Nested Bundle Inventory")
+    # -----------------------------------------------------------------
+    tech_kiosk = KioskInterface("CAMPUS-TECH-01", ElectronicsKioskFactory())
+    
+    laptop = SingleProduct("E001", "Laptop", 60000.0, 5)
+    mouse = SingleProduct("E002", "Mouse", 1500.0, 20)
+    bag = SingleProduct("E003", "Laptop Bag", 2000.0, 15)
+    
+    # Bundle Level 1: Student Kit
+    student_kit = BundleProduct("B_STUDENT", "Student Tech Kit")
+    student_kit.add_product(laptop)
+    student_kit.add_product(mouse)
+    
+    # Bundle Level 2: Mega Bundle (Nested)
+    mega_bundle = BundleProduct("B_MEGA", "Mega Campus Bundle")
+    mega_bundle.add_product(student_kit)
+    mega_bundle.add_product(bag)
+    
+    tech_kiosk.inventory.add_product(laptop)
+    tech_kiosk.inventory.add_product(mouse)
+    tech_kiosk.inventory.add_product(bag)
+    tech_kiosk.inventory.add_product(mega_bundle)
+    
+    print(f"[INVENTORY] Mega Bundle recursive price check: {mega_bundle.get_price()} INR")
+    print(f"[PURCHASE] Buying the Mega Bundle...")
+    tech_kiosk.purchase_item("B_MEGA", "Moksh", "upi")
+    
+    print("[INVENTORY] Verifying stocks after bundle purchase...")
+    print(f"  Laptop remaining: {laptop.quantity}")
+    print(f"  Mouse remaining: {mouse.quantity}")
+    print(f"  Mega Bundle available: {mega_bundle.is_available()}")
 
-# diagnostics and restock via facade
-print("\ndiagnostics -->")
-pharma.diagnostics()
 
-print("\n-- restock test --")
-food.restock("Water Bottle", 10)
-food.buy("Water Bottle", 15)   # should work now
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Scenario 4: Extensibility (Crypto Payment)")
+    # -----------------------------------------------------------------
+    relief_kiosk = KioskInterface("DISASTER-RELIEF-01", EmergencyReliefKioskFactory())
+    med_kit = SingleProduct("R999", "Emergency Med Kit", 1200.0, 100)
+    relief_kiosk.inventory.add_product(med_kit)
+    
+    # Register the new adapter at runtime
+    relief_kiosk.payment_gateway.register_adapter("crypto", CryptoAdapter())
+    
+    # Use the new payment method
+    relief_kiosk.purchase_item("R999", "Kurin", "crypto")
 
-# check registry has all kiosks
-print("\nregistry check -->")
-all_kiosks = CentralRegistry.get_instance().get_all_kiosks()
-print("total kiosks registered:", len(all_kiosks))
-for k in all_kiosks:
-    print(" ->", k.kiosk_id)
 
-print("\n..simulation done..")
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Final Verification & History")
+    # -----------------------------------------------------------------
+    print("\n[SYSTEM] Command History (from relief_kiosk):")
+    for cmd in relief_kiosk.invoker.get_history():
+        print(f"  -> {cmd}")
+
+    print("\n[SYSTEM] Verifying persistence files...")
+    files = [
+        "data/inventory_PHARMA-SEC-01.json",
+        "data/transactions_METRO-FOOD-05.json",
+        "data/config.json"
+    ]
+    for f in files:
+        status = "EXISTS" if os.path.exists(f) else "MISSING"
+        print(f"  File {f}: {status}")
+
+    print("\n" + "="*60)
+    print("               SIMULATION COMPLETE               ")
+    print("="*60)
+
+if __name__ == "__main__":
+    run_simulation()

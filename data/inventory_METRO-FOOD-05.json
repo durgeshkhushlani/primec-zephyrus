@@ -1,0 +1,10 @@
+{
+    "F101": {
+        "type": "single",
+        "product_id": "F101",
+        "name": "Coffee",
+        "price": 40.0,
+        "quantity": 47,
+        "reserved": 0
+    }
+}

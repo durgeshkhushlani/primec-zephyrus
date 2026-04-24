@@ -1,0 +1,64 @@
+{
+    "E001": {
+        "type": "single",
+        "product_id": "E001",
+        "name": "Laptop",
+        "price": 60000.0,
+        "quantity": 4,
+        "reserved": 0
+    },
+    "E002": {
+        "type": "single",
+        "product_id": "E002",
+        "name": "Mouse",
+        "price": 1500.0,
+        "quantity": 19,
+        "reserved": 0
+    },
+    "E003": {
+        "type": "single",
+        "product_id": "E003",
+        "name": "Laptop Bag",
+        "price": 2000.0,
+        "quantity": 14,
+        "reserved": 0
+    },
+    "B_MEGA": {
+        "type": "bundle",
+        "product_id": "B_MEGA",
+        "name": "Mega Campus Bundle",
+        "children": [
+            {
+                "type": "bundle",
+                "product_id": "B_STUDENT",
+                "name": "Student Tech Kit",
+                "children": [
+                    {
+                        "type": "single",
+                        "product_id": "E001",
+                        "name": "Laptop",
+                        "price": 60000.0,
+                        "quantity": 4,
+                        "reserved": 0
+                    },
+                    {
+                        "type": "single",
+                        "product_id": "E002",
+                        "name": "Mouse",
+                        "price": 1500.0,
+                        "quantity": 19,
+                        "reserved": 0
+                    }
+                ]
+            },
+            {
+                "type": "single",
+                "product_id": "E003",
+                "name": "Laptop Bag",
+                "price": 2000.0,
+                "quantity": 14,
+                "reserved": 0
+            }
+        ]
+    }
+}

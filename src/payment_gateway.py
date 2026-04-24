@@ -1,79 +1,89 @@
-# adapter pattern - different payment apis wrapped into one common interface
-
 from abc import ABC, abstractmethod
+from typing import Dict
 
+"""
+Payment Gateway Module for Aura Retail OS.
+Implements the Adapter pattern to unify disparate third-party payment APIs.
+"""
 
-class PaymentGateway(ABC):
-
+class PaymentProcessor(ABC):
+    """The central interface (Target) that the system expects."""
+    
     @abstractmethod
-    def do_payment(self, amt): pass
-
-    @abstractmethod
-    def do_refund(self, txn_id): pass
-
-
-# pretend third party apis below
-
-class upi_api:
-    def send(self, upi_id, rupees):
-        return "upi sent rs." + str(rupees) + " to " + upi_id
-
-    def reverse(self, ref_no):
-        return "upi reversed ref:" + ref_no
+    def process(self, amount: float, user_id: str) -> bool:
+        """Standard method to process a payment."""
+        pass
 
 
-class card_api:
-    def charge(self, card_no, amt):
-        return "card " + card_no + " charged rs." + str(amt)
+# --- Adaptees (Simulated Third Party APIs with different signatures) ---
 
-    def give_refund(self, receipt):
-        return "card refund for receipt " + receipt
-
-
-class wallet_api:
-    def deduct(self, w_id, amt):
-        return "wallet " + w_id + " debited rs." + str(amt)
-
-    def add_back(self, w_id, amt):
-        return "wallet " + w_id + " credited rs." + str(amt)
+class CreditCardAPI:
+    """External API for credit cards."""
+    def charge_card(self, user: str, amt: float, provider: str = "VISA") -> bool:
+        print(f"[EXTERNAL-API] CreditCard: Charging {amt} to user {user} via {provider}")
+        return True
 
 
-# actual adapters
+class WalletAPI:
+    """External API for digital wallets."""
+    def debit_balance(self, wallet_id: str, amount: float) -> bool:
+        print(f"[EXTERNAL-API] Wallet: Debiting {amount} from account {wallet_id}")
+        return True
 
-class UpiAdapter(PaymentGateway):
+
+class UPIAPI:
+    """External API for Unified Payments Interface."""
+    def perform_transfer(self, vpa: str, amount_in_inr: float) -> bool:
+        print(f"[EXTERNAL-API] UPI: Initiating transfer of {amount_in_inr} to {vpa}")
+        return True
+
+
+# --- Adapters (Concrete implementations of PaymentProcessor) ---
+
+class CreditCardAdapter(PaymentProcessor):
+    """Adapts CreditCardAPI to PaymentProcessor interface."""
     def __init__(self):
-        self.api = upi_api()
+        self.api = CreditCardAPI()
 
-    def do_payment(self, amt):
-        res = self.api.send("aura@upi", amt)
-        print(res)
-
-    def do_refund(self, txn_id):
-        res = self.api.reverse(txn_id)
-        print(res)
+    def process(self, amount: float, user_id: str) -> bool:
+        return self.api.charge_card(user=user_id, amt=amount)
 
 
-class CardAdapter(PaymentGateway):
+class WalletAdapter(PaymentProcessor):
+    """Adapts WalletAPI to PaymentProcessor interface."""
     def __init__(self):
-        self.api = card_api()
+        self.api = WalletAPI()
 
-    def do_payment(self, amt):
-        res = self.api.charge("xxxx-1234", amt)
-        print(res)
-
-    def do_refund(self, txn_id):
-        res = self.api.give_refund(txn_id)
-        print(res)
+    def process(self, amount: float, user_id: str) -> bool:
+        return self.api.debit_balance(wallet_id=f"W-{user_id}", amount=amount)
 
 
-class WalletAdapter(PaymentGateway):
+class UPIAdapter(PaymentProcessor):
+    """Adapts UPIAPI to PaymentProcessor interface."""
     def __init__(self):
-        self.api = wallet_api()
+        self.api = UPIAPI()
 
-    def do_payment(self, amt):
-        res = self.api.deduct("usr_wallet_01", amt)
-        print(res)
+    def process(self, amount: float, user_id: str) -> bool:
+        return self.api.perform_transfer(vpa=f"{user_id}@aurapay", amount_in_inr=amount)
 
-    def do_refund(self, txn_id):
-        res = self.api.add_back("usr_wallet_01", 0)
-        print(res)
+
+class PaymentGateway:
+    """The gateway that manages and selects the appropriate adapter."""
+    
+    def __init__(self):
+        self._adapters: Dict[str, PaymentProcessor] = {
+            "credit_card": CreditCardAdapter(),
+            "wallet": WalletAdapter(),
+            "upi": UPIAdapter()
+        }
+
+    def register_adapter(self, name: str, adapter: PaymentProcessor) -> None:
+        """Allows runtime extension of payment methods (Open/Closed Principle)."""
+        self._adapters[name] = adapter
+        print(f"[PAYMENT] Registered new payment provider: {name}")
+
+    def get_adapter(self, method: str) -> PaymentProcessor:
+        """Retrieves an adapter by method name."""
+        if method not in self._adapters:
+            raise ValueError(f"Unsupported payment method: {method}")
+        return self._adapters[method]
