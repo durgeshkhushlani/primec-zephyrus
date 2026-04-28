@@ -1,0 +1,9 @@
+Main dispenser changed to Pharma-Arm-V2_FAST
+Module Cold-Storage-5L plugged in
+CRITICAL FAULT: Cold-Storage-5L went offline!
+Main dispenser changed to Pharma-Arm-V2_FAST
+Module Cold-Storage-5L plugged in
+CRITICAL FAULT: Cold-Storage-5L went offline!
+Main dispenser changed to Pharma-Arm-V2_FAST
+Module Cold-Storage-5L plugged in
+CRITICAL FAULT: Cold-Storage-5L went offline!

@@ -1,0 +1,14 @@
+{
+    "L1": {
+        "name": "Gaming Laptop",
+        "left": 5
+    },
+    "L2": {
+        "name": "Wireless Mouse",
+        "left": 9
+    },
+    "CB_1": {
+        "name": "Back to School Kit",
+        "type": "combo_pack"
+    }
+}

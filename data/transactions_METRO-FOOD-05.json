@@ -1,0 +1,29 @@
+[
+    {
+        "timestamp": "2026-04-14T18:02:57.965312",
+        "type": "PURCHASE",
+        "kiosk_id": "METRO-FOOD-05",
+        "product_id": "F101",
+        "user_id": "Durgesh",
+        "amount": 40.0,
+        "status": "SUCCESS"
+    },
+    {
+        "timestamp": "2026-04-14T18:02:57.966746",
+        "type": "PURCHASE",
+        "kiosk_id": "METRO-FOOD-05",
+        "product_id": "F101",
+        "user_id": "Priyanshu",
+        "amount": 40.0,
+        "status": "SUCCESS"
+    },
+    {
+        "timestamp": "2026-04-14T18:02:57.967856",
+        "type": "PURCHASE",
+        "kiosk_id": "METRO-FOOD-05",
+        "product_id": "F101",
+        "user_id": "Jay",
+        "amount": 40.0,
+        "status": "SUCCESS"
+    }
+]

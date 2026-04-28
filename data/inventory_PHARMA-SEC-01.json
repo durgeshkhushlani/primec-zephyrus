@@ -1,0 +1,10 @@
+{
+    "P001": {
+        "type": "single",
+        "product_id": "P001",
+        "name": "Insulin",
+        "price": 500.0,
+        "quantity": 8,
+        "reserved": 0
+    }
+}
